@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>口腔保健小遊戲</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f0f9ff; /* 淡藍色背景 */
+            margin: 0;
+            overflow: hidden; /* 防止遊戲元素超出邊界時出現滾動條 */
+        }
+        #game-container {
+            width: 90%;
+            max-width: 600px; /* 最大寬度 */
+            height: 500px; /* 遊戲區域高度 */
+            background-color: #ffffff; /* 白色遊戲背景 */
+            border: 5px solid #60a5fa; /* 藍色邊框 */
+            border-radius: 15px; /* 圓角 */
+            position: relative;
+            overflow: hidden; /* 確保掉落物不出界 */
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1); /* 添加陰影 */
+        }
+        .item {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            font-size: 30px; /* 調整 emoji 大小 */
+            text-align: center;
+            line-height: 40px; /* 垂直居中 emoji */
+            user-select: none; /* 防止選取 emoji */
+            transition: transform 0.1s ease-out; /* 添加平滑移動效果 */
+        }
+        #player {
+            position: absolute;
+            width: 60px; /* 玩家寬度 */
+            height: 60px; /* 玩家高度 */
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 50px; /* 玩家 emoji 大小 */
+            text-align: center;
+            line-height: 60px;
+            cursor: pointer; /* 鼠標樣式 */
+            transition: left 0.1s ease-out; /* 平滑移動 */
+        }
+        #score-board {
+            font-size: 1.5em; /* 調整字體大小 */
+            color: #1e3a8a; /* 深藍色文字 */
+            margin-bottom: 15px; /* 與遊戲區域的間距 */
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1); /* 文字陰影 */
+        }
+        .button-container {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px; /* 按鈕間距 */
+        }
+        .game-button {
+            background-color: #3b82f6; /* 藍色按鈕 */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px; /* 圓角按鈕 */
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* 按鈕陰影 */
+        }
+        .game-button:hover {
+            background-color: #2563eb; /* 按鈕懸停效果 */
+        }
+        .message-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 100; /* 確保在最上層 */
+            font-size: 1.2em;
+        }
+        .message-box button {
+            background-color: #3b82f6;
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            margin-top: 15px;
+            cursor: pointer;
+        }
+        /* 手機控制按鈕 */
+        .mobile-controls {
+            display: none; /* 預設隱藏 */
+            margin-top: 10px;
+            gap: 20px;
+        }
+        .control-button {
+            background-color: #60a5fa;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 2em;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        @media (max-width: 768px) {
+            .mobile-controls {
+                display: flex; /* 在小螢幕上顯示 */
+            }
+            #game-container {
+                height: 400px; /* 在小螢幕上調整高度 */
+            }
+            .item {
+                width: 30px;
+                height: 30px;
+                font-size: 25px;
+                line-height: 30px;
+            }
+            #player {
+                width: 50px;
+                height: 50px;
+                font-size: 40px;
+                line-height: 50px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="score-board">分數: 0 | 生命: 3</div>
+    <div id="game-container">
+        <div id="player">🦷</div> </div>
+    <div class="button-container">
+        <button id="start-button" class="game-button">開始遊戲</button>
+        <button id="reset-button" class="game-button" style="display: none;">重新開始</button>
+    </div>
+    <div class="mobile-controls">
+        <button id="left-button" class="control-button">⬅️</button>
+        <button id="right-button" class="control-button">➡️</button>
+    </div>
+
+    <script>
+        const gameContainer = document.getElementById('game-container');
+        const player = document.getElementById('player');
+        const scoreBoard = document.getElementById('score-board');
+        const startButton = document.getElementById('start-button');
+        const resetButton = document.getElementById('reset-button');
+        const leftButton = document.getElementById('left-button');
+        const rightButton = document.getElementById('right-button');
+
+        // 遊戲設定
+        let score = 0;
+        let lives = 3;
+        let gameInterval;
+        let itemSpeed = 3; // 物品掉落速度 (像素/幀)
+        const itemCreationInterval = 1200; // 物品生成間隔 (毫秒)
+        let gameActive = false;
+        const playerStep = 30; // 玩家移動步長
+
+        // 物品類型
+        const goodItems = [
+            { emoji: '🍎', points: 10, type: 'good' },  // 蘋果
+            { emoji: '🥕', points: 10, type: 'good' },  // 胡蘿蔔
+            { emoji: '🥛', points: 10, type: 'good' },  // 牛奶
+            { emoji: '🛡️', points: 0, type: 'shield', duration: 5000 } // 假設這是牙膏/漱口水，提供短暫保護
+        ];
+        const badItems = [
+            { emoji: '🍬', points: -5, type: 'bad' },   // 糖果
+            { emoji: '🥤', points: -5, type: 'bad' },   // 汽水
+            { emoji: '🦠', points: -1, type: 'germ' }     // 細菌 (扣生命)
+        ];
+        const allItems = [...goodItems, ...badItems];
+
+        let playerShielded = false; // 玩家是否受保護
+
+        // 更新分數和生命顯示
+        function updateBoard() {
+            scoreBoard.textContent = `分數: ${score} | 生命: ${lives}`;
+        }
+
+        // 創建掉落物
+        function createItem() {
+            if (!gameActive) return;
+
+            const randomItem = allItems[Math.floor(Math.random() * allItems.length)];
+            const itemElement = document.createElement('div');
+            itemElement.classList.add('item');
+            itemElement.textContent = randomItem.emoji;
+            itemElement.dataset.points = randomItem.points;
+            itemElement.dataset.type = randomItem.type;
+            if (randomItem.type === 'shield') {
+                itemElement.dataset.duration = randomItem.duration;
+            }
+
+            // 設定物品初始位置 (遊戲容器頂部隨機X軸)
+            const gameContainerWidth = gameContainer.offsetWidth;
+            itemElement.style.left = Math.random() * (gameContainerWidth - 40) + 'px'; // 40是物品寬度
+            itemElement.style.top = '0px';
+
+            gameContainer.appendChild(itemElement);
+        }
+
+        // 移動掉落物並檢測碰撞
+        function moveItems() {
+            if (!gameActive) return;
+
+            const items = document.querySelectorAll('.item');
+            const playerRect = player.getBoundingClientRect();
+            const gameContainerRect = gameContainer.getBoundingClientRect();
+
+            items.forEach(item => {
+                let itemTop = parseInt(item.style.top);
+                itemTop += itemSpeed;
+                item.style.top = itemTop + 'px';
+
+                const itemRect = item.getBoundingClientRect();
+
+                // 檢測碰撞
+                if (
+                    itemRect.bottom >= playerRect.top &&
+                    itemRect.top <= playerRect.bottom &&
+                    itemRect.right >= playerRect.left &&
+                    itemRect.left <= playerRect.right
+                ) {
+                    const points = parseInt(item.dataset.points);
+                    const type = item.dataset.type;
+
+                    if (playerShielded && (type === 'bad' || type === 'germ')) {
+                        // 受保護狀態，不扣分/生命
+                        item.remove();
+                        return;
+                    }
+
+                    if (type === 'good') {
+                        score += points;
+                    } else if (type === 'bad') {
+                        score += points;
+                        if (score < 0) score = 0; // 分數不為負
+                    } else if (type === 'germ') {
+                        lives--;
+                    } else if (type === 'shield') {
+                        activateShield(parseInt(item.dataset.duration));
+                    }
+
+                    item.remove(); // 移除碰撞的物品
+                    updateBoard();
+
+                    if (lives <= 0) {
+                        endGame("遊戲結束！您的牙齒不健康了！");
+                    }
+                }
+
+                // 物品掉出底部
+                if (itemRect.top > gameContainerRect.bottom) {
+                    item.remove();
+                }
+            });
+        }
+
+        // 啟動保護罩
+        function activateShield(duration) {
+            playerShielded = true;
+            player.textContent = '🦷✨'; // 玩家牙齒加個閃光特效
+            console.log("保護罩啟動！");
+            setTimeout(() => {
+                playerShielded = false;
+                player.textContent = '🦷'; // 恢復正常牙齒
+                console.log("保護罩結束。");
+            }, duration);
+        }
+
+
+        // 遊戲主循環
+        function gameLoop() {
+            if (!gameActive) return;
+            moveItems();
+            requestAnimationFrame(gameLoop); // 使用 requestAnimationFrame 以獲得更平滑的動畫
+        }
+
+        // 開始遊戲
+        function startGame() {
+            if (gameActive) return;
+            gameActive = true;
+            score = 0;
+            lives = 3;
+            itemSpeed = 3; // 重設速度
+            player.style.left = '50%'; // 重置玩家位置
+            updateBoard();
+            startButton.style.display = 'none';
+            resetButton.style.display = 'inline-block';
+            // 清除舊的掉落物
+            document.querySelectorAll('.item').forEach(item => item.remove());
+
+            // 定期創建物品
+            gameInterval = setInterval(createItem, itemCreationInterval);
+            // 啟動遊戲循環
+            requestAnimationFrame(gameLoop);
+            hideMessage();
+        }
+
+        // 結束遊戲
+        function endGame(messageText) {
+            gameActive = false;
+            clearInterval(gameInterval); // 停止創建新物品
+            // 不再調用 requestAnimationFrame(gameLoop) 來停止動畫
+            resetButton.style.display = 'inline-block';
+            startButton.style.display = 'none'; // 可以選擇隱藏開始按鈕或使其變為 "重新開始"
+            showMessage(messageText);
+        }
+
+        // 顯示訊息框
+        function showMessage(text) {
+            let messageBox = document.querySelector('.message-box');
+            if (!messageBox) {
+                messageBox = document.createElement('div');
+                messageBox.classList.add('message-box');
+                const messageTextElement = document.createElement('p');
+                messageTextElement.textContent = text;
+                const closeButton = document.createElement('button');
+                closeButton.textContent = '知道了';
+                closeButton.onclick = () => {
+                    hideMessage();
+                    resetButton.style.display = 'inline-block'; // 確保重新開始按鈕可見
+                    startButton.style.display = 'none';
+                };
+                messageBox.appendChild(messageTextElement);
+                messageBox.appendChild(closeButton);
+                gameContainer.appendChild(messageBox);
+            } else {
+                messageBox.querySelector('p').textContent = text;
+                messageBox.style.display = 'block';
+            }
+        }
+
+        // 隱藏訊息框
+        function hideMessage() {
+            const messageBox = document.querySelector('.message-box');
+            if (messageBox) {
+                messageBox.style.display = 'none';
+            }
+        }
+
+
+        // 重置遊戲
+        function resetGame() {
+            endGame(""); // 實際上是停止當前遊戲
+            hideMessage();
+            score = 0;
+            lives = 3;
+            updateBoard();
+            document.querySelectorAll('.item').forEach(item => item.remove()); // 清除所有物品
+            player.style.left = '50%'; // 重置玩家位置
+            startButton.style.display = 'inline-block'; // 顯示開始按鈕
+            resetButton.style.display = 'none'; // 隱藏重置按鈕
+            gameActive = false; // 確保遊戲狀態為非活動
+        }
+
+
+        // 鍵盤控制玩家移動
+        document.addEventListener('keydown', (e) => {
+            if (!gameActive) return;
+            const playerRect = player.getBoundingClientRect();
+            const gameContainerRect = gameContainer.getBoundingClientRect();
+
+            if (e.key === 'ArrowLeft') {
+                if (playerRect.left > gameContainerRect.left) {
+                     player.style.left = (player.offsetLeft - playerStep) + 'px';
+                }
+            } else if (e.key === 'ArrowRight') {
+                 if (playerRect.right < gameContainerRect.right) {
+                    player.style.left = (player.offsetLeft + playerStep) + 'px';
+                }
+            }
+        });
+
+        // 滑鼠/觸控控制玩家移動 (更直觀)
+        gameContainer.addEventListener('mousemove', (e) => {
+            if (!gameActive || e.buttons !== 1) return; // e.buttons !== 1 表示僅在按下滑鼠左鍵時移動
+            movePlayer(e.clientX);
+        });
+
+        gameContainer.addEventListener('touchmove', (e) => {
+            if (!gameActive) return;
+            e.preventDefault(); // 防止頁面滾動
+            movePlayer(e.touches[0].clientX);
+        }, { passive: false });
+
+
+        function movePlayer(xPosition) {
+            const gameContainerRect = gameContainer.getBoundingClientRect();
+            let newLeft = xPosition - gameContainerRect.left - (player.offsetWidth / 2);
+
+            // 限制玩家在遊戲區域內移動
+            if (newLeft < 0) {
+                newLeft = 0;
+            }
+            if (newLeft > gameContainer.offsetWidth - player.offsetWidth) {
+                newLeft = gameContainer.offsetWidth - player.offsetWidth;
+            }
+            player.style.left = newLeft + 'px';
+        }
+
+        // 手機按鈕控制
+        leftButton.addEventListener('click', () => {
+            if (!gameActive) return;
+            const playerRect = player.getBoundingClientRect();
+            const gameContainerRect = gameContainer.getBoundingClientRect();
+            if (playerRect.left > gameContainerRect.left) {
+                 player.style.left = (player.offsetLeft - playerStep) + 'px';
+            }
+        });
+
+        rightButton.addEventListener('click', () => {
+            if (!gameActive) return;
+            const playerRect = player.getBoundingClientRect();
+            const gameContainerRect = gameContainer.getBoundingClientRect();
+            if (playerRect.right < gameContainerRect.right) {
+                player.style.left = (player.offsetLeft + playerStep) + 'px';
+            }
+        });
+
+
+        // 事件監聽
+        startButton.addEventListener('click', startGame);
+        resetButton.addEventListener('click', resetGame);
+
+        // 初始設定
+        updateBoard();
+        // 讓使用者點擊開始按鈕來啟動遊戲，而不是自動開始
+    </script>
+</body>
+</html>
