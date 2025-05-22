@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>口腔保健小遊戲</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 基本樣式，確保頁面居中且背景美觀 */
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f0f9ff; /* 淡藍色背景 */
+            margin: 0;
+            overflow: hidden; /* 防止遊戲元素超出邊界時出現滾動條 */
+        }
+        /* 遊戲容器樣式 */
+        #game-container {
+            width: 90%;
+            max-width: 600px; /* 最大寬度 */
+            height: 500px; /* 遊戲區域高度 */
+            background-color: #ffffff; /* 白色遊戲背景 */
+            border: 5px solid #60a5fa; /* 藍色邊框 */
+            border-radius: 15px; /* 圓角 */
+            position: relative;
+            overflow: hidden; /* 確保掉落物不出界 */
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1); /* 添加陰影 */
+        }
+        /* 掉落物品樣式 */
+        .item {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            font-size: 30px; /* 調整 emoji 大小 */
+            text-align: center;
+            line-height: 40px; /* 垂直居中 emoji */
+            user-select: none; /* 防止選取 emoji */
+            transition: transform 0.1s ease-out; /* 添加平滑移動效果 */
+        }
+        /* 玩家牙齒樣式 */
+        #player {
+            position: absolute;
+            width: 60px; /* 玩家寬度 */
+            height: 60px; /* 玩家高度 */
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 50px; /* 玩家 emoji 大小 */
+            text-align: center;
+            line-height: 60px;
+            cursor: pointer; /* 鼠標樣式 */
+            transition: left 0.1s ease-out; /* 平滑移動 */
+        }
+        /* 分數和生命值顯示板樣式 */
+        #score-board {
+            font-size: 1.5em; /* 調整字體大小 */
+            color: #1e3a8a; /* 深藍色文字 */
+            margin-bottom: 15px; /* 與遊戲區域的間距 */
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1); /* 文字陰影 */
+        }
+        /* 按鈕容器樣式 */
+        .button-container {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px; /* 按鈕間距 */
+        }
+        /* 遊戲按鈕通用樣式 */
+        .game-button {
+            background-color: #3b82f6; /* 藍色按鈕 */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px; /* 圓角按鈕 */
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* 按鈕陰影 */
+        }
+        .game-button:hover {
+            background-color: #2563eb; /* 按鈕懸停效果 */
+        }
+        /* 訊息框樣式 (取代 alert()) */
+        .message-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.85); /* 更深的背景，突出訊息 */
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 100; /* 確保在最上層 */
+            font-size: 1.2em;
+            max-width: 80%; /* 限制寬度 */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: none; /* 預設隱藏，由 JS 控制顯示 */
+        }
+        .message-box h2 {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            color: #93c5fd; /* 淺藍色標題 */
+        }
+        .message-box p {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+        .message-box ul {
+            text-align: left;
+            margin: 15px auto;
+            padding-left: 25px;
+            max-width: 300px; /* 限制列表寬度 */
+        }
+        .message-box li {
+            margin-bottom: 5px;
+        }
+        .message-box button {
+            background-color: #3b82f6;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            margin-top: 20px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: background-color 0.3s ease;
+        }
+        .message-box button:hover {
+            background-color: #2563eb;
+        }
+
+        /* 規則頁面疊加層樣式 */
+        #rules-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9); /* 更深的半透明背景 */
+            display: flex; /* 使用 flexbox 居中內容 */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 101; /* 確保在所有遊戲元素之上 */
+            color: white;
+            padding: 20px;
+            box-sizing: border-box; /* 確保 padding 不會撐大元素 */
+            text-align: center;
+        }
+        #rules-overlay h2 {
+            font-size: 2.2em;
+            margin-bottom: 20px;
+            color: #60a5fa; /* 亮藍色標題 */
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        #rules-overlay .rules-content {
+            font-size: 1.1em;
+            line-height: 1.8;
+            margin-bottom: 25px;
+            max-height: 70%; /* 限制內容高度，防止溢出 */
+            overflow-y: auto; /* 允許內容滾動 */
+            padding: 0 15px;
+        }
+        #rules-overlay .rules-content p {
+            margin-bottom: 10px;
+        }
+        #rules-overlay .rules-content ul {
+            text-align: left;
+            margin: 15px auto;
+            padding-left: 25px;
+            max-width: 350px; /* 限制列表寬度 */
+        }
+        #rules-overlay .rules-content li {
+            margin-bottom: 5px;
+        }
+        #rules-overlay button {
+            background-color: #10b981; /* 綠色「OK」按鈕 */
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.3em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+        #rules-overlay button:hover {
+            background-color: #059669;
+            transform: translateY(-2px);
+        }
+
+        /* 手機控制按鈕容器 */
+        .mobile-controls {
+            display: none; /* 預設隱藏 */
+            margin-top: 10px;
+            gap: 20px;
+        }
+        /* 手機控制按鈕樣式 */
+        .control-button {
+            background-color: #60a5fa;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 2em;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        /* 響應式設計：針對小螢幕調整樣式 */
+        @media (max-width: 768px) {
+            .mobile-controls {
+                display: flex; /* 在小螢幕上顯示手機控制按鈕 */
+            }
+            #game-container {
+                height: 400px; /* 在小螢幕上調整遊戲區域高度 */
+            }
+            .item {
+                width: 30px;
+                height: 30px;
+                font-size: 25px;
+                line-height: 30px;
+            }
+            #player {
+                width: 50px;
+                height: 50px;
+                font-size: 40px;
+                line-height: 50px;
+            }
+            .message-box {
+                padding: 20px;
+                font-size: 1em;
+            }
+            .message-box h2 {
+                font-size: 1.5em;
+            }
+            .message-box button {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+            #rules-overlay h2 {
+                font-size: 1.8em;
+            }
+            #rules-overlay .rules-content {
+                font-size: 0.95em;
+            }
+            #rules-overlay button {
+                padding: 12px 30px;
+                font-size: 1.1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="score-board">分數: 0 | 生命: 3</div>
+    <div id="game-container">
+        <div id="player">🦷</div>
+        <div id="rules-overlay">
+            <h2>口腔保健小遊戲 - 規則</h2>
+            <div class="rules-content">
+                <p>歡迎來到口腔保健小遊戲！</p>
+                <p>請幫助牙齒🦷吃到好食物，避開壞食物和細菌，保護您的牙齒健康！</p>
+                <ul>
+                    <li><b>操作方式：</b>
+                        <ul>
+                            <li><b>電腦：</b>使用滑鼠在遊戲區域內拖曳牙齒，或使用鍵盤左右箭頭鍵。</li>
+                            <li><b>手機：</b>觸控螢幕拖曳牙齒，或使用下方左右按鈕。</li>
+                        </ul>
+                    </li>
+                    <li><b>好食物 (+分數)：</b>🍎 🥕 🥛 (吃到可增加分數)</li>
+                    <li><b>壞食物 (-分數)：</b>🍬 🥤 (吃到會扣除分數)</li>
+                    <li><b>細菌 (-生命)：</b>🦠 (碰到會扣除生命值)</li>
+                    <li><b>護盾 (短暫無敵)：</b>🛡️ (吃到後牙齒會發光✨，短暫時間內不會受到傷害)</li>
+                </ul>
+                <p>初始生命值為 3。當生命值歸零時，遊戲結束！</p>
+                <p>祝您玩得愉快，成為護牙小能手！</p>
+            </div>
+            <button id="rules-ok-button">OK，開始遊戲！</button>
+        </div>
+
+    </div>
+    <div class="button-container">
+        <button id="reset-button" class="game-button" style="display: none;">重新開始</button>
+    </div>
+    <div class="mobile-controls">
+        <button id="left-button" class="control-button">⬅️</button>
+        <button id="right-button" class="control-button">➡️</button>
+    </div>
+
+    <script>
+        const gameContainer = document.getElementById('game-container');
+        const player = document.getElementById('player');
+        const scoreBoard = document.getElementById('score-board');
+        const resetButton = document.getElementById('reset-button');
+        const leftButton = document.getElementById('left-button');
+        const rightButton = document.getElementById('right-button');
+        const rulesOverlay = document.getElementById('rules-overlay'); // 獲取規則頁面元素
+        const rulesOkButton = document.getElementById('rules-ok-button'); // 獲取規則頁面上的OK按鈕
+
+        // 遊戲設定變數
+        let score = 0;
+        let lives = 3;
+        let gameInterval; // 用於控制物品生成
+        let itemSpeed = 3; // 物品掉落速度 (像素/幀)
+        const itemCreationInterval = 1200; // 物品生成間隔 (毫秒)
+        let gameActive = false; // 遊戲是否正在進行
+        const playerStep = 30; // 玩家移動步長 (用於鍵盤和按鈕控制)
+
+        // 物品類型定義
+        const goodItems = [
+            { emoji: '🍎', points: 10, type: 'good' },  // 蘋果: 好食物，加分
+            { emoji: '🥕', points: 10, type: 'good' },  // 胡蘿蔔: 好食物，加分
+            { emoji: '🥛', points: 10, type: 'good' },  // 牛奶: 好食物，加分
+            { emoji: '🛡️', points: 0, type: 'shield', duration: 5000 } // 護盾: 提供短暫保護，無分數變化
+        ];
+        const badItems = [
+            { emoji: '🍬', points: -5, type: 'bad' },   // 糖果: 壞食物，扣分
+            { emoji: '🥤', points: -5, type: 'bad' },   // 汽水: 壞食物，扣分
+            { emoji: '🦠', points: -1, type: 'germ' }     // 細菌: 扣生命值
+        ];
+        const allItems = [...goodItems, ...badItems]; // 所有可能的掉落物
+
+        let playerShielded = false; // 玩家是否處於保護狀態
+
+        // 更新分數和生命值顯示
+        function updateBoard() {
+            scoreBoard.textContent = `分數: ${score} | 生命: ${lives}`;
+        }
+
+        // 創建一個新的掉落物
+        function createItem() {
+            if (!gameActive) return; // 如果遊戲未啟用，則不創建物品
+
+            const randomItem = allItems[Math.floor(Math.random() * allItems.length)]; // 隨機選擇一個物品
+            const itemElement = document.createElement('div');
+            itemElement.classList.add('item');
+            itemElement.textContent = randomItem.emoji;
+            itemElement.dataset.points = randomItem.points;
+            itemElement.dataset.type = randomItem.type;
+            if (randomItem.type === 'shield') {
+                itemElement.dataset.duration = randomItem.duration;
+            }
+
+            // 設定物品初始位置 (遊戲容器頂部隨機X軸)
+            const gameContainerWidth = gameContainer.offsetWidth;
+            itemElement.style.left = Math.random() * (gameContainerWidth - 40) + 'px'; // 40是物品寬度
+            itemElement.style.top = '0px';
+
+            gameContainer.appendChild(itemElement);
+        }
+
+        // 移動掉落物並檢測碰撞
+        function moveItems() {
+            if (!gameActive) return; // 如果遊戲未啟用，則不移動物品
+
+            const items = document.querySelectorAll('.item');
+            const playerRect = player.getBoundingClientRect(); // 獲取玩家牙齒的尺寸和位置
+            const gameContainerRect = gameContainer.getBoundingClientRect(); // 獲取遊戲容器的尺寸和位置
+
+            items.forEach(item => {
+                let itemTop = parseInt(item.style.top);
+                itemTop += itemSpeed; // 物品向下移動
+                item.style.top = itemTop + 'px';
+
+                const itemRect = item.getBoundingClientRect(); // 獲取當前物品的尺寸和位置
+
+                // 檢測碰撞：判斷物品和玩家牙齒的矩形區域是否重疊
+                if (
+                    itemRect.bottom >= playerRect.top &&
+                    itemRect.top <= playerRect.bottom &&
+                    itemRect.right >= playerRect.left &&
+                    itemRect.left <= playerRect.right
+                ) {
+                    const points = parseInt(item.dataset.points);
+                    const type = item.dataset.type;
+
+                    // 處理護盾效果：如果玩家受保護且碰撞到壞食物或細菌，則不扣分/生命
+                    if (playerShielded && (type === 'bad' || type === 'germ')) {
+                        item.remove(); // 移除物品，但無傷害
+                        return;
+                    }
+
+                    // 根據物品類型應用遊戲規則
+                    if (type === 'good') {
+                        score += points; // 好食物，加分
+                    } else if (type === 'bad') {
+                        score += points; // 壞食物，扣分 (points為負值)
+                        if (score < 0) score = 0; // 分數不允許為負數
+                    } else if (type === 'germ') {
+                        lives--; // 細菌，扣生命值
+                    } else if (type === 'shield') {
+                        activateShield(parseInt(item.dataset.duration)); // 護盾，啟動保護狀態
+                    }
+
+                    item.remove(); // 移除碰撞到的物品
+                    updateBoard(); // 更新分數板顯示
+
+                    // 判斷遊戲是否結束
+                    if (lives <= 0) {
+                        endGame("遊戲結束！您的牙齒不健康了！");
+                    }
+                }
+
+                // 物品掉出遊戲容器底部，則移除
+                if (itemRect.top > gameContainerRect.bottom) {
+                    item.remove();
+                }
+            });
+        }
+
+        // 啟動保護罩功能
+        function activateShield(duration) {
+            playerShielded = true; // 設定玩家為受保護狀態
+            player.textContent = '🦷✨'; // 玩家牙齒顯示閃光特效
+            console.log("保護罩啟動！");
+            // 在指定時間後解除保護狀態
+            setTimeout(() => {
+                playerShielded = false; // 解除保護狀態
+                player.textContent = '🦷'; // 恢復正常牙齒圖示
+                console.log("保護罩結束。");
+            }, duration);
+        }
+
+        // 遊戲主循環，使用 requestAnimationFrame 實現流暢動畫
+        function gameLoop() {
+            if (!gameActive) return; // 如果遊戲未啟用，則停止循環
+            moveItems(); // 移動所有掉落物並檢測碰撞
+            requestAnimationFrame(gameLoop); // 請求下一幀動畫
+        }
+
+        // 開始遊戲
+        function startGame() {
+            if (gameActive) return; // 如果遊戲已經在進行中，則不重複開始
+            gameActive = true;
+            score = 0;
+            lives = 3;
+            itemSpeed = 3; // 重設掉落速度
+            player.style.left = '50%'; // 重置玩家牙齒位置
+            updateBoard(); // 更新分數板
+
+            resetButton.style.display = 'inline-block'; // 顯示重新開始按鈕
+            // 清除所有舊的掉落物
+            document.querySelectorAll('.item').forEach(item => item.remove());
+
+            // 隱藏規則頁面
+            rulesOverlay.style.display = 'none';
+
+            // 定期創建新物品
+            gameInterval = setInterval(createItem, itemCreationInterval);
+            // 啟動遊戲循環
+            requestAnimationFrame(gameLoop);
+            hideMessage(); // 隱藏任何可能顯示的訊息框
+        }
+
+        /**
+         * 顯示通用訊息框 (用於遊戲結束等小彈窗)
+         * @param {string} title 訊息框標題
+         * @param {string} content 訊息框內容 (可包含 HTML)
+         * @param {string} buttonText 按鈕文字
+         * @param {function} buttonCallback 按鈕點擊後執行的回調函數
+         */
+        function showMessage(title, content, buttonText, buttonCallback) {
+            let messageBox = document.querySelector('.message-box');
+            if (!messageBox) {
+                messageBox = document.createElement('div');
+                messageBox.classList.add('message-box');
+                gameContainer.appendChild(messageBox);
+            }
+
+            messageBox.innerHTML = `
+                <h2>${title}</h2>
+                <p>${content}</p>
+                <button>${buttonText}</button>
+            `;
+            messageBox.querySelector('button').onclick = buttonCallback;
+            messageBox.style.display = 'block';
+        }
+
+        // 隱藏訊息框
+        function hideMessage() {
+            const messageBox = document.querySelector('.message-box');
+            if (messageBox) {
+                messageBox.style.display = 'none';
+            }
+        }
+
+        // 結束遊戲
+        function endGame(messageText) {
+            gameActive = false; // 設定遊戲為非活動狀態
+            clearInterval(gameInterval); // 停止創建新物品
+            // 由於 gameLoop 內部有 gameActive 判斷，停止 gameActive 即可停止動畫
+            resetButton.style.display = 'none'; // 遊戲結束時，隱藏重置按鈕，讓玩家透過訊息框重新開始
+            showMessage("遊戲結束！", messageText + "<br><br>您的最終分數是: " + score, "重新開始", resetGame);
+        }
+
+        // 重置遊戲到初始狀態 (顯示規則頁面)
+        function resetGame() {
+            gameActive = false; // 確保遊戲狀態為非活動
+            clearInterval(gameInterval); // 停止創建新物品
+            score = 0;
+            lives = 3;
+            updateBoard(); // 更新分數板
+            document.querySelectorAll('.item').forEach(item => item.remove()); // 清除所有掉落物
+            player.style.left = '50%'; // 重置玩家牙齒位置
+            resetButton.style.display = 'none'; // 隱藏重置按鈕
+            displayRulesPage(); // 顯示遊戲規則頁面
+        }
+
+        // 顯示遊戲規則頁面
+        function displayRulesPage() {
+            rulesOverlay.style.display = 'flex'; // 顯示規則頁面
+        }
+
+        // 鍵盤控制玩家移動 (左右箭頭鍵)
+        document.addEventListener('keydown', (e) => {
+            if (!gameActive) return; // 遊戲未啟用則不響應
+            const playerRect = player.getBoundingClientRect();
+            const gameContainerRect = gameContainer.getBoundingClientRect();
+
+            if (e.key === 'ArrowLeft') {
+                // 向左移動，並檢查是否超出遊戲容器左邊界
+                if (playerRect.left > gameContainerRect.left) {
+                     player.style.left = (player.offsetLeft - playerStep) + 'px';
+                }
+            } else if (e.key === 'ArrowRight') {
+                 // 向右移動，並檢查是否超出遊戲容器右邊界
+                 if (playerRect.right < gameContainerRect.right) {
+                    player.style.left = (player.offsetLeft + playerStep) + 'px';
+                }
+            }
+        });
+
+        // 滑鼠/觸控控制玩家移動 (更直觀的方式)
+        // 監聽遊戲容器的 mousemove 事件，當滑鼠按住左鍵時移動玩家
+        gameContainer.addEventListener('mousemove', (e) => {
+            // e.buttons === 1 表示滑鼠左鍵被按下
+            if (!gameActive || e.buttons !== 1) return;
+            movePlayer(e.clientX); // 根據滑鼠X座標移動玩家
+        });
+
+        // 監聽遊戲容器的 touchmove 事件，用於觸控螢幕移動玩家
+        gameContainer.addEventListener('touchmove', (e) => {
+            if (!gameActive) return;
+            e.preventDefault(); // 防止頁面滾動，確保觸控移動順暢
+            movePlayer(e.touches[0].clientX); // 根據第一個觸控點的X座標移動玩家
+        }, { passive: false }); // passive: false 允許 preventDefault() 生效
+
+        // 根據給定的X座標移動玩家牙齒
+        function movePlayer(xPosition) {
+            const gameContainerRect = gameContainer.getBoundingClientRect();
+            // 計算玩家牙齒的新左邊位置，使其中心對準觸控/滑鼠X座標
+            let newLeft = xPosition - gameContainerRect.left - (player.offsetWidth / 2);
+
+            // 限制玩家在遊戲區域內移動
+            if (newLeft < 0) {
+                newLeft = 0;
+            }
+            if (newLeft > gameContainer.offsetWidth - player.offsetWidth) {
+                newLeft = gameContainer.offsetWidth - player.offsetWidth;
+            }
+            player.style.left = newLeft + 'px';
+        }
+
+        // 手機控制按鈕事件監聽 (左右箭頭按鈕)
+        leftButton.addEventListener('click', () => {
+            if (!gameActive) return;
+            const playerRect = player.getBoundingClientRect();
+            const gameContainerRect = gameContainer.getBoundingClientRect();
+            // 向左移動，並檢查是否超出遊戲容器左邊界
+            if (playerRect.left > gameContainerRect.left) {
+                 player.style.left = (player.offsetLeft - playerStep) + 'px';
+            }
+        });
+
+        rightButton.addEventListener('click', () => {
+            if (!gameActive) return;
+            const playerRect = player.getBoundingClientRect();
+            const gameContainerRect = gameContainer.getBoundingClientRect();
+            // 向右移動，並檢查是否超出遊戲容器右邊界
+            if (playerRect.right < gameContainerRect.right) {
+                player.style.left = (player.offsetLeft + playerStep) + 'px';
+            }
+        });
+
+        // 初始設定：頁面載入時顯示遊戲規則頁面
+        window.onload = function() {
+            updateBoard(); // 首次載入時更新分數板顯示
+            displayRulesPage(); // 顯示遊戲規則頁面
+        };
+
+        // 規則頁面上的「OK」按鈕事件監聽
+        rulesOkButton.addEventListener('click', startGame);
+
+        // 重置按鈕的事件監聽 (在遊戲結束後才會顯示)
+        resetButton.addEventListener('click', resetGame);
+    </script>
+</body>
+</html>
+
